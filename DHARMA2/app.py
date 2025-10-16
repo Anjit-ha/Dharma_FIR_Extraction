@@ -10,9 +10,8 @@ import os
 st.set_page_config(page_title="DHARMA FIR Extractor", page_icon="⚖️", layout="wide")
 st.title("⚖️ DHARMA Project – FIR Information Extraction & Legal Mapping")
 st.markdown("""
-This Streamlit app extracts **structured information** from bilingual police FIR text  
-and maps it to **relevant legal sections** under Indian Penal Code (BNS 2023),  
-SC/ST Atrocities Act, and Arms Act.
+This tool automatically extracts **structured information** from bilingual police FIR text  
+and maps it to **relevant legal sections** under **BNS 2023**, **SC/ST Act**, and **Arms Act**.  
 
 🪶 *Paste or upload the FIR text below to begin.*
 """)
@@ -26,7 +25,7 @@ if "result" not in st.session_state:
     st.session_state.result = None
 
 # ----------------------------------------------------------
-# Helper Functions (same as before)
+# Helper Functions
 # ----------------------------------------------------------
 def extract_complainant_info(text: str) -> Dict[str, Any]:
     info = {}
@@ -115,7 +114,6 @@ def map_legal_sections(info: Dict[str, Any]) -> Dict[str, List[str]]:
             "Sec. 25 – Possession/use of illegal arms",
             "Sec. 27 – Use of firearm in commission of offence"
         ])
-    # Only return non-empty mappings
     return {k: v for k, v in mapping.items() if v}
 
 def extract_all(text: str) -> Dict[str, Any]:
@@ -152,7 +150,7 @@ st.subheader("📄 Input FIR Text")
 option = st.radio("Choose Input Method:", ["✍️ Paste FIR Text", "📁 Upload .txt File"])
 
 if option == "✍️ Paste FIR Text":
-    fir_text = st.text_area("Paste FIR text here:", value=st.session_state.fir_text, key="fir_text_area", height=300)
+    fir_text = st.text_area("Paste FIR text here:", value=st.session_state.fir_text, key="fir_text_area", height=250)
 else:
     uploaded_file = st.file_uploader("Upload FIR text file", type=["txt"])
     fir_text = uploaded_file.read().decode("utf-8") if uploaded_file else ""
@@ -171,23 +169,51 @@ with col1:
 
 with col2:
     if st.button("🔁 New Extraction"):
-        # Reset the session state to clear text box and results
-        st.session_state.fir_text = ""
-        st.session_state.result = None
+        st.session_state.clear()
+        st.rerun()
 
-# Show results if available
-if st.session_state.result:
-    st.subheader("📘 Structured Information")
-    st.json(st.session_state.result)
 
-    st.subheader("⚖️ Relevant Legal Mapping")
-    st.table(
-        [{"Law": k, "Sections": ", ".join(v)} for k, v in st.session_state.result["LegalMapping"].items()]
-    )
+
+# ----------------------------------------------------------
+# Display Output
+# ----------------------------------------------------------
+if st.session_state.get("result"):
+    result = st.session_state.result
+    st.markdown("---")
+    st.header("📘 Structured Information")
+
+    with st.expander("👤 Complainant Details", expanded=True):
+        for k, v in result["Complainant"].items():
+            st.markdown(f"**{k}:** {v}")
+
+    with st.expander("👮 Accused Details", expanded=False):
+        for idx, acc in enumerate(result["Accused"], 1):
+            st.markdown(f"**Accused {idx}:**")
+            for k, v in acc.items():
+                st.markdown(f"- **{k}:** {v}")
+
+    with st.expander("📅 Incident Details", expanded=False):
+        st.markdown(f"**Date & Time:** {result['DateTime']}")
+        st.markdown(f"**Place:** {result['Place']}")
+        st.markdown(f"**Vehicles:** {', '.join(result['Vehicles']) if result['Vehicles'] else 'None'}")
+        st.markdown(f"**Weapons Used:** {', '.join(result['WeaponsUsed']) if result['WeaponsUsed'] else 'None'}")
+
+    with st.expander("⚠️ Offence Summary", expanded=False):
+        st.markdown(f"**Offences:** {', '.join(result['Offences'])}")
+        st.markdown(f"**Threats:** {', '.join(result['Threats']) if result['Threats'] else 'None'}")
+        st.markdown(f"**Property Loss:** {', '.join(result['PropertyLoss']) if result['PropertyLoss'] else 'None'}")
+        st.markdown(f"**Impact:** {result['Impact']}")
+
+    st.markdown("---")
+    st.header("⚖️ Relevant Legal Mapping")
+    for law, sections in result["LegalMapping"].items():
+        st.markdown(f"**{law}:**")
+        for s in sections:
+            st.markdown(f"- {s}")
 
     st.download_button(
-        label="⬇️ Download JSON",
-        data=json.dumps(st.session_state.result, indent=2, ensure_ascii=False),
+        label="⬇️ Download Extracted JSON",
+        data=json.dumps(result, indent=2, ensure_ascii=False),
         file_name="fir_extracted_data.json",
         mime="application/json"
     )
@@ -201,3 +227,4 @@ st.markdown("""
 Developed using **Streamlit** | NLP + Regex Based FIR Structuring  
 👩‍💻 Author: *Anjitha*
 """)
+
