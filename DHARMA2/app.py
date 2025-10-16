@@ -172,8 +172,6 @@ with col2:
         st.session_state.clear()
         st.rerun()
 
-
-
 # ----------------------------------------------------------
 # Display Output
 # ----------------------------------------------------------
@@ -227,4 +225,3 @@ st.markdown("""
 Developed using **Streamlit** | NLP + Regex Based FIR Structuring  
 👩‍💻 Author: *Anjitha*
 """)
-
